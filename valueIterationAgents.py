@@ -15,6 +15,7 @@
 import mdp, util
 
 from learningAgents import ValueEstimationAgent
+q1_debug = True
 
 class ValueIterationAgent(ValueEstimationAgent):
     """
@@ -41,11 +42,66 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.mdp = mdp
         self.discount = discount
         self.iterations = iterations
-        self.values = util.Counter() # A Counter is a dict with default 0
+        self.values = util.Counter() # utility values
+
+        print("start! discount " + str(discount))
+        print("iterations " + str(iterations))
+        # input()
 
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
+        # get
+        # states:
+        # ['TERMINAL_STATE', (0, 0), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0), (3, 1), (3, 2)]
+        # get
+        # actions:
+        # ('north', 'west', 'south', 'east')
+        # get
+        # transition
+        # states and probabilities:
+        # [((0, 1), 0.8), ((1, 0), 0.1), ((0, 0), 0.1)]
+        # get
+        # reward:
+        # 0.0
+        # is terminal:
+        # False
 
+        # Calculates the utility of each state after a certain number of iterations
+
+        states = mdp.getStates()
+
+        for iter in range(iterations): # wasn't working before - but might work now?
+
+            for s in states:
+
+                # doing the sigma part of the equation
+                actions_in_s = mdp.getPossibleActions(s) # e.g. ('north', 'west', 'south', 'east')
+                actions_q_values = util.Counter()
+
+                # find action with max p(x'x,a) U[s]
+                for a in actions_in_s:
+
+                    # add q_value to dictionary
+                    actions_q_values[a] = self.computeQValueFromValues(s, a)
+                #----------------------------------------a-------------------------------------
+
+                # next action that gives the highest q value
+                best_action = actions_q_values.argMax()
+
+                # the q value of the next best action
+                q_value_of_best_action = actions_q_values[best_action]
+
+                # updated utility = reward of state + discount*q_value
+                self.values[s] = mdp.getReward(s, None, None) + discount*q_value_of_best_action
+
+            # ----------------------------------------s--------------------------------------------
+        # ----------------------------------------iter--------------------------------------
+
+        # now self.values has the utility of each state after speficied number of iterations
+
+        # check:
+        # for key in self.values.keys():
+        #     print(str(key) + "    " + str(self.values[key]))
 
     def getValue(self, state):
         """
@@ -53,14 +109,28 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         return self.values[state]
 
-
     def computeQValueFromValues(self, state, action):
         """
           Compute the Q-value of action in state from the
           value function stored in self.values.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        next_possible_states_and_prob = self.mdp.getTransitionStatesAndProbs(state, action)
+
+        # q_value
+        q_value = 0
+
+        # loop to calculate the q_value
+        for poss in next_possible_states_and_prob:
+
+            # possibility to this state
+            poss_to_state = poss[1]
+
+            # to state
+            to_state = poss[0] # tuple
+
+            q_value += poss_to_state*self.values[to_state] # P(s'|s,a) * U[s']
+
+        return q_value
 
     def computeActionFromValues(self, state):
         """
@@ -71,8 +141,21 @@ class ValueIterationAgent(ValueEstimationAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return None.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        # task: find action that gives the maximum q value
+
+        actions = self.mdp.getPossibleActions(state)
+        q_values = util.Counter()
+
+        # loop to fill dictionary of q_values corresponding to all possible actions
+        for a in actions:
+
+            q_values[a] = self.computeQValueFromValues(state, a)
+
+        # best action by our policy
+        best_action = q_values.argMax()
+
+        return best_action
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
