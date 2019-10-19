@@ -42,7 +42,7 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.mdp = mdp
         self.discount = discount
         self.iterations = iterations
-        self.values = util.Counter() # A Counter is a dict with default 0
+        self.values = util.Counter() # utility values
 
         print("start! discount " + str(discount))
         print("iterations " + str(iterations))
@@ -70,7 +70,7 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         states = mdp.getStates()
 
-        for iter in range(10):
+        for iter in range(iterations): # wasn't working before - but might work now?
 
             for s in states:
 
@@ -78,60 +78,28 @@ class ValueIterationAgent(ValueEstimationAgent):
                 actions_in_s = mdp.getPossibleActions(s) # e.g. ('north', 'west', 'south', 'east')
                 actions_q_values = util.Counter()
 
+                # find action with max p(x'x,a) U[s]
                 for a in actions_in_s:
 
-                    # transition states and associated probabilities
-                    next_possible_states_and_prob = mdp.getTransitionStatesAndProbs(s, a)
-
-                    for poss in next_possible_states_and_prob:
-
-                        # possibility to this state
-                        poss_to_state = poss[1]
-
-                        # to state
-                        to_state = poss[0] # tuple
-
-                        if mdp.isTerminal(to_state):
-                            print(str(mdp.getPossibleActions(s)))
-                            print("current state: " + str(s) + "; action: " + str(a) + "; to_state: " + str(to_state))
-                            print("reward: " + str(mdp.getReward(s, a, to_state)))
-
-                        # q value to this state
-                        q_val_to_state = self.values[to_state] # should be 0 to start with
-
-                        actions_q_values[a] += poss_to_state*q_val_to_state
+                    # add q_value to dictionary
+                    actions_q_values[a] = self.computeQValueFromValues(s, a)
                 #----------------------------------------a-------------------------------------
 
                 # next action that gives the highest q value
                 best_action = actions_q_values.argMax()
+
                 # the q value of the next best action
-                max_value_of_best_action = actions_q_values[best_action]
+                q_value_of_best_action = actions_q_values[best_action]
 
-                # final value of right-side
-                rs = self.discount*max_value_of_best_action
+                # updated utility = reward of state + discount*q_value
+                self.values[s] = mdp.getReward(s, None, None) + discount*q_value_of_best_action
 
-                # left-side
-                # find next highest likely state
-
-                if best_action is not None:
-                    next_states = mdp.getTransitionStatesAndProbs(s, best_action)
-                    nexts = util.Counter()
-                    for next in next_states:
-                        # next state
-                        next_state = next[0]
-                        possibility_to_next_state = next[1]
-                        nexts[next_state] = possibility_to_next_state
-                    highest_likely_state = nexts.argMax()
-                    ls = mdp.getReward(s, best_action, highest_likely_state)
-                else: # also am i using the policy from the previous step?
-                    ls = 0#mdp.getReward(s, 'exit', "TERMINAL_STATE")
-
-                self.values[s] = ls + rs
             # ----------------------------------------s--------------------------------------------
         # ----------------------------------------iter--------------------------------------
 
         # now self.values has the utility of each state after speficied number of iterations
 
+        # check:
         # for key in self.values.keys():
         #     print(str(key) + "    " + str(self.values[key]))
 
@@ -141,37 +109,28 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         return self.values[state]
 
-
     def computeQValueFromValues(self, state, action):
         """
           Compute the Q-value of action in state from the
           value function stored in self.values.
         """
-        "*** YOUR CODE HERE ***"
-        # Q(s, a) = expected discounted reward if perform a from s
-        # and then follow optimal policy from then on.
+        next_possible_states_and_prob = self.mdp.getTransitionStatesAndProbs(state, action)
 
-    def Q_val(self, state, action, value=0):
+        # q_value
+        q_value = 0
 
-        if self.mdp.isTerminal(state):
-            return 1+value
+        # loop to calculate the q_value
+        for poss in next_possible_states_and_prob:
 
-        # find reward
-        next_states_and_possibilities = self.mdp.getTransitionStatesAndProbs(state, action)
-        probability = util.Counter()
-        for next in next_states_and_possibilities:
-            next_state = next[0]
-            next_state_prob = next[1]
-            probability[next_state] = next_state_prob
-        most_likely_next_state = probability.argMax()
-        reward = self.mdp.getReward(state, action, most_likely_next_state)
+            # possibility to this state
+            poss_to_state = poss[1]
 
-        # find max Q
-        next_best_action = self.computeActionFromValues(most_likely_next_state)
-        discounted_max_Q = self.Q_val(most_likely_next_state, next_best_action, value)
+            # to state
+            to_state = poss[0] # tuple
 
-        return reward + discounted_max_Q
+            q_value += poss_to_state*self.values[to_state] # P(s'|s,a) * U[s']
 
+        return q_value
 
     def computeActionFromValues(self, state):
         """
@@ -182,29 +141,21 @@ class ValueIterationAgent(ValueEstimationAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return None.
         """
-        "*** YOUR CODE HERE ***"
-        expected_utilities = util.Counter()
-        actions = self.mdp.getPossibleActions(state)
 
+        # task: find action that gives the maximum q value
+
+        actions = self.mdp.getPossibleActions(state)
+        q_values = util.Counter()
+
+        # loop to fill dictionary of q_values corresponding to all possible actions
         for a in actions:
 
-            transition_states_and_probs = self.mdp.getTransitionStatesAndProbs(state, a)
+            q_values[a] = self.computeQValueFromValues(state, a)
 
-            for transition_state_and_prob in transition_states_and_probs:
-
-                transition_state = transition_state_and_prob[0]
-                probability = transition_state_and_prob[1]
-
-                # expected utilities
-                expected_utilities[a] += probability*self.values[transition_state]
-            # --------------transition_state_and_prob---------------------
-
-        # -------------------------------a--------------------------------
-
-        best_action = expected_utilities.argMax()
+        # best action by our policy
+        best_action = q_values.argMax()
 
         return best_action
-
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
