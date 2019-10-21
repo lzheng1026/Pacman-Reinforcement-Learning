@@ -39,6 +39,9 @@ class ValueIterationAgent(ValueEstimationAgent):
               mdp.getReward(state, action, nextState)
               mdp.isTerminal(state)
         """
+
+        # task: calculate true utilities using Bellman's update
+
         self.mdp = mdp
         self.discount = discount
         self.iterations = iterations
@@ -46,31 +49,14 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         print("start! discount " + str(discount))
         print("iterations " + str(iterations))
-        # input()
-
-        # Write value iteration code here
-        "*** YOUR CODE HERE ***"
-        # get
-        # states:
-        # ['TERMINAL_STATE', (0, 0), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0), (3, 1), (3, 2)]
-        # get
-        # actions:
-        # ('north', 'west', 'south', 'east')
-        # get
-        # transition
-        # states and probabilities:
-        # [((0, 1), 0.8), ((1, 0), 0.1), ((0, 0), 0.1)]
-        # get
-        # reward:
-        # 0.0
-        # is terminal:
-        # False
-
-        # Calculates the utility of each state after a certain number of iterations
 
         states = mdp.getStates()
 
         for iter in range(iterations): # wasn't working before - but might work now?
+
+            # temporary dictionary to hold updated state values
+            # update self.values when you complete the entire iteration
+            temp_values = util.Counter()
 
             for s in states:
 
@@ -91,10 +77,14 @@ class ValueIterationAgent(ValueEstimationAgent):
                 # the q value of the next best action
                 q_value_of_best_action = actions_q_values[best_action]
 
-                # updated utility = reward of state + discount*q_value
-                self.values[s] = mdp.getReward(s, None, None) + discount*q_value_of_best_action
+                # updated temp utility = reward of state + discount*q_value
+                temp_values[s] = mdp.getReward(s, None, None) + discount*q_value_of_best_action
 
             # ----------------------------------------s--------------------------------------------
+
+            # update actual utility
+            self.values = temp_values.copy()
+
         # ----------------------------------------iter--------------------------------------
 
         # now self.values has the utility of each state after speficied number of iterations
@@ -129,6 +119,7 @@ class ValueIterationAgent(ValueEstimationAgent):
             to_state = poss[0] # tuple
 
             q_value += poss_to_state*self.values[to_state] # P(s'|s,a) * U[s']
+            # note: make sure you are using the 'old' util values
 
         return q_value
 
@@ -142,18 +133,18 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
 
-        # task: find action that gives the maximum q value
+        # task: find action that gives the maximum expected utility
 
         actions = self.mdp.getPossibleActions(state)
-        q_values = util.Counter()
+        expected_utility = util.Counter()
 
-        # loop to fill dictionary of q_values corresponding to all possible actions
+        # loop to fill dictionary of expected utility corresponding to all possible actions
         for a in actions:
 
-            q_values[a] = self.computeQValueFromValues(state, a)
+            expected_utility[a] = self.computeQValueFromValues(state, a)
 
         # best action by our policy
-        best_action = q_values.argMax()
+        best_action = expected_utility.argMax()
 
         return best_action
 
