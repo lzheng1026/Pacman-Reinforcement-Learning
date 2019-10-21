@@ -47,10 +47,8 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.iterations = iterations
         self.values = util.Counter() # utility values
 
-        print("start! discount " + str(discount))
-        print("iterations " + str(iterations))
-
         states = mdp.getStates()
+
 
         for iter in range(iterations): # wasn't working before - but might work now?
 
@@ -63,6 +61,10 @@ class ValueIterationAgent(ValueEstimationAgent):
                 # doing the sigma part of the equation
                 actions_in_s = mdp.getPossibleActions(s) # e.g. ('north', 'west', 'south', 'east')
                 actions_q_values = util.Counter()
+
+                # check if you reached terminal state
+                # if len(actions_in_s)==1:
+                #     continue
 
                 # find action with max p(x'x,a) U[s]
                 for a in actions_in_s:
@@ -77,13 +79,14 @@ class ValueIterationAgent(ValueEstimationAgent):
                 # the q value of the next best action
                 q_value_of_best_action = actions_q_values[best_action]
 
-                # updated temp utility = reward of state + discount*q_value
-                temp_values[s] = mdp.getReward(s, None, None) + discount*q_value_of_best_action
+                # updated temp utility
+                temp_values[s] = q_value_of_best_action
 
             # ----------------------------------------s--------------------------------------------
 
             # update actual utility
-            self.values = temp_values.copy()
+            for key in temp_values.keys():
+                self.values[key] = temp_values[key]
 
         # ----------------------------------------iter--------------------------------------
 
@@ -118,10 +121,12 @@ class ValueIterationAgent(ValueEstimationAgent):
             # to state
             to_state = poss[0] # tuple
 
-            q_value += poss_to_state*self.values[to_state] # P(s'|s,a) * U[s']
-            # note: make sure you are using the 'old' util values
+            # P(s'|s,a) * discount * U[s']
+            q_value += poss_to_state*self.discount*self.values[to_state]
 
-        return q_value
+        # use reward function in return
+
+        return self.mdp.getReward(state, None, None) + q_value
 
     def computeActionFromValues(self, state):
         """
