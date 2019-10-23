@@ -283,23 +283,28 @@ class ApproximateQAgent(PacmanQAgent):
         s_prime = nextState
         a = action
 
-        for key in self.weights.keys():
+        # utility of next state
+        a_primes = self.getLegalActions(s_prime)
+        s_prime_q_values = util.Counter()
+        for a_prime in a_primes:
+            s_prime_q_values[a_prime] = self.getQValue(s_prime, a_prime)
+        max_a_prime = s_prime_q_values.argMax()
+        max_val_of_a_prime = s_prime_q_values[max_a_prime]
+        utility_of_s_prime = max_val_of_a_prime
 
-            # utility of next state
-            a_primes = self.getLegalActions(s_prime)
-            max_value = 0
-            for a_prime in a_primes:
-                s_prime_q_value = self.getQValue(s_prime, a_prime)
-                if s_prime_q_value > max_value:
-                    max_value = s_prime_q_value
-            utility_of_s_prime = max_value
+        # difference
+        difference = (r + discount * utility_of_s_prime) - self.getQValue(s, a)
+        # print(self.weights)
 
-            # other
-            q_value = self.getQValue(s, a)
+        for key in self.featExtractor.getFeatures(s, a).keys():
+
+            # print(str(key))
+
+            # feature_value
             feature_value = self.featExtractor.getFeatures(s, a)[key]
 
             # equation
-            self.weights[key] = self.weights[key] + alpha*(r+discount*utility_of_s_prime-q_value)*feature_value
+            self.weights[key] += alpha*difference*feature_value
 
     def final(self, state):
         "Called at the end of each game."
