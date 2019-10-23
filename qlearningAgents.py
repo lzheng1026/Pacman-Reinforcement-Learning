@@ -245,8 +245,6 @@ class ApproximateQAgent(PacmanQAgent):
         PacmanQAgent.__init__(self, **args)
         self.weights = util.Counter()
 
-        #play around
-
 
     def getWeights(self):
         return self.weights
@@ -257,14 +255,51 @@ class ApproximateQAgent(PacmanQAgent):
           where * is the dotProduct operator
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        s = state
+        a = action
+
+        # find all the feature functions from the state-action pair
+        featureVector = self.featExtractor.getFeatures(s, a)
+
+        # find the corresponding
+        w = self.weights
+
+        # calculate the Q(state,action)
+        q_value = w*featureVector
+
+        return q_value
 
     def update(self, state, action, nextState, reward):
         """
            Should update your weights based on transition
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        # initialize values
+        alpha = self.alpha
+        r = reward
+        discount = self.discount
+        s = state
+        s_prime = nextState
+        a = action
+
+        for key in self.weights.keys():
+
+            # utility of next state
+            a_primes = self.getLegalActions(s_prime)
+            max_value = 0
+            for a_prime in a_primes:
+                s_prime_q_value = self.getQValue(s_prime, a_prime)
+                if s_prime_q_value > max_value:
+                    max_value = s_prime_q_value
+            utility_of_s_prime = max_value
+
+            # other
+            q_value = self.getQValue(s, a)
+            feature_value = self.featExtractor.getFeatures(s, a)[key]
+
+            # equation
+            self.weights[key] = self.weights[key] + alpha*(r+discount*utility_of_s_prime-q_value)*feature_value
 
     def final(self, state):
         "Called at the end of each game."
