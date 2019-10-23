@@ -43,6 +43,7 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         "*** YOUR CODE HERE ***"
+        self.Qvalues = util.Counter()
 
     def getQValue(self, state, action):
         """
@@ -51,7 +52,11 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        key = (state, action)
+        if self.Qvalues[key] == 0:
+            return 0.0
+        else:
+            return self.Qvalues[state]
 
 
     def computeValueFromQValues(self, state):
@@ -62,16 +67,78 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        # task: find action that gives the maximum Q value
+
+        actions = self.getLegalActions(state)
+        q_values_of_result_states = util.Counter()
+
+        # if there are no legal actions
+        if len(actions) == 0:
+            return 0.0
+
+        # loop to fill dictionary of expected utility corresponding to all possible actions
+        for a in actions:
+            q_values_of_result_states[a] = self.getQValue(state, a)
+
+        # best action by our policy
+        best_action = q_values_of_result_states.argMax()
+
+        # value of best action
+        best_value = q_values_of_result_states[best_action]
+
+        return best_value
 
     def computeActionFromQValues(self, state):
         """
           Compute the best action to take in a state.  Note that if there
           are no legal actions, which is the case at the terminal state,
           you should return None.
+
+          need to edit this!
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        actions = self.getLegalActions(state)
+        q_values_of_result_states = util.Counter()
+
+        # if there are no legal actions
+        if len(actions) == 0:
+            return None
+
+        # loop to fill dictionary of expected utility corresponding to all possible actions
+        for a in actions:
+            q_values_of_result_states[a] = self.getQValue(state, a)
+
+        # best action by our policy
+        # best_action = q_values_of_result_states.argMax()
+        """
+        if len(self.keys()) == 0: return None
+        all = self.items()
+        values = [x[1] for x in all]
+        maxIndex = values.index(max(values))
+        return all[maxIndex][0]
+        """
+        if len(q_values_of_result_states.keys()) == 0:
+            print("no values in q values for this state action pair")
+            return None
+        all = q_values_of_result_states.items()
+        values = [x[1] for x in all]
+        max_value = max(values)
+        best_actions = []
+        for k in q_values_of_result_states.keys():
+            if q_values_of_result_states[k] == max_value:
+                best_actions.append(k)
+
+        # need to break ties?
+        if len(best_actions) == 0:
+            print("no best actions in computeActionFromQValues")
+            return None
+        elif len(best_actions) == 1:
+            return best_actions[0]
+        else: # more than one best action, need to break tie
+            return random.choice(best_actions)
+
 
     def getAction(self, state):
         """
@@ -102,7 +169,26 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        '''
+        Instance variables you have access to
+        - self.epsilon (exploration prob)
+        - self.alpha (learning rate)
+        - self.discount (discount rate)
+        '''
+        s = state
+        s_prime = nextState
+        a = action
+        r = reward # unsure
+
+        key = (s, a)
+        original_val = self.Qvalues[key]
+
+        # max_q_val_from_future
+        max_q_val_from_future = self.computeValueFromQValues(s_prime) # could be 0.0 if terminal state
+
+        new_val = original_val + self.alpha*(r + self.discount*max_q_val_from_future - original_val)
+
+        self.Qvalues[key] = new_val
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
