@@ -292,13 +292,16 @@ class ApproximateQAgent(PacmanQAgent):
         max_val_of_a_prime = s_prime_q_values[max_a_prime]
         utility_of_s_prime = max_val_of_a_prime
 
-        for key in self.weights.keys():
+        # difference
+        difference = (r + discount * utility_of_s_prime) - self.getQValue(s, a)
+        # print(self.weights)
+
+        for key in self.featExtractor.getFeatures(s, a).keys():
+
+            # print(str(key))
 
             # feature_value
             feature_value = self.featExtractor.getFeatures(s, a)[key]
-
-            # difference
-            difference = (r + discount*utility_of_s_prime) - self.getQValue(s, a)
 
             # equation
             self.weights[key] += alpha*difference*feature_value
