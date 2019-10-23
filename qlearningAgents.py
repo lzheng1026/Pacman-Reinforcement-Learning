@@ -56,7 +56,7 @@ class QLearningAgent(ReinforcementAgent):
         if self.Qvalues[key] == 0:
             return 0.0
         else:
-            return self.Qvalues[state]
+            return self.Qvalues[key]
 
 
     def computeValueFromQValues(self, state):
@@ -241,6 +241,9 @@ class ApproximateQAgent(PacmanQAgent):
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
         self.weights = util.Counter()
+
+        #play around
+
 
     def getWeights(self):
         return self.weights
